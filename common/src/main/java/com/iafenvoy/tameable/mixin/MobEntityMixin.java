@@ -8,7 +8,6 @@ import com.iafenvoy.tameable.goal.CustomTrackOwnerAttackerGoal;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.GoalSelector;
-import net.minecraft.entity.ai.pathing.EntityNavigation;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -38,9 +37,6 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Final
     protected GoalSelector targetSelector;
 
-    @Shadow
-    protected EntityNavigation navigation;
-
     protected MobEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
         super(entityType, world);
     }
@@ -54,7 +50,7 @@ public abstract class MobEntityMixin extends LivingEntity {
         if (data.attack()) this.targetSelector.add(2, new CustomAttackWithOwnerGoal(t));
         if (data.follow().enable()) {
             TameableConfig.FollowInfo follow = data.follow();
-            this.goalSelector.add(2, new CustomFollowOwnerGoal(t, follow.speed(), follow.minDistance(), follow.maxDistance(), follow.leavesAllowed()));
+            this.goalSelector.add(1, new CustomFollowOwnerGoal(t, follow.speed(), follow.minDistance(), follow.maxDistance(), follow.leavesAllowed()));
         }
         if (data.protect()) this.targetSelector.add(2, new CustomTrackOwnerAttackerGoal(t));
     }
@@ -65,14 +61,13 @@ public abstract class MobEntityMixin extends LivingEntity {
         if (optional.isEmpty()) return;
         TameableConfig.TameableData data = optional.get();
         ItemStack stack = player.getStackInHand(hand);
-        if (data.food().stream().anyMatch(x -> x.test(stack))) {
+        if (data.food().stream().anyMatch(x -> x.left().map(stack::isOf).orElse(false) || x.right().map(stack::isIn).orElse(false))) {
             MobEntity t = (MobEntity) (Object) this;
             EntityTameData entityTameData = EntityTameData.get(t);
             if (entityTameData.getOwner() != null) {
                 if (this.getHealth() < this.getMaxHealth() && entityTameData.getOwnerPlayer() == player) {
                     if (!player.isCreative()) stack.decrement(1);
                     this.heal(stack.getItem().getFoodComponent().getHunger());
-
                     cir.setReturnValue(ActionResult.SUCCESS);
                 }
             } else {
@@ -80,7 +75,6 @@ public abstract class MobEntityMixin extends LivingEntity {
                 if (this.random.nextFloat() < data.chance()) {
                     entityTameData.setOwner(player.getUuid());
                     entityTameData.setSitting(false);
-                    this.navigation.stop();
                     this.getWorld().sendEntityStatus(this, (byte) 7);
                     this.tameable$showEmoteParticle(true);
                 } else {

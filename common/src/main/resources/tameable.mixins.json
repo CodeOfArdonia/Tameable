@@ -6,7 +6,9 @@
   "mixins": [
     "EntityMixin",
     "LivingEntityMixin",
-    "MobEntityMixin"
+    "MobEntityMixin",
+    "TargetPredicateMixin",
+    "TrackTargetGoalMixin"
   ],
   "client": [
   ],
