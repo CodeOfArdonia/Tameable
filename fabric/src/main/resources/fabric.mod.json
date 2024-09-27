@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "tameable",
+  "version": "${version}",
+  "name": "Tameable",
+  "description": "Tame everything!",
+  "authors": [
+    "IAFEnvoy"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.iafenvoy.tameable.fabric.TameableFabric"
+    ],
+    "cardinal-components-entity": [
+      "com.iafenvoy.tameable.fabric.component.ModComponentEntry"
+    ]
+  },
+  "custom": {
+    "cardinal-components": [
+      "tameable:tame_data"
+    ]
+  },
+  "mixins": [
+    "tameable.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": ">=1.20.1"
+  }
+}
