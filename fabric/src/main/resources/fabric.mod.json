@@ -7,9 +7,11 @@
   "authors": [
     "IAFEnvoy"
   ],
-  "contact": {},
+  "contact": {
+    "sources": "https://github.com/ArkTechMC/Tameable"
+  },
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "logo.jpg",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -28,7 +30,7 @@
     "tameable.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.15.11",
-    "minecraft": ">=1.20.1"
+    "fabricloader": "*",
+    "minecraft": "1.20.1"
   }
 }

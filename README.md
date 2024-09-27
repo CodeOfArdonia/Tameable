@@ -4,6 +4,8 @@
 
 This mod provides a configurable system to control which mobs you can tame.
 
+**Note: Some entities may meet bugs since this mod doesn't rewrite the full AI!**
+
 ## How to use
 
 Open file `.minecraft/config/tameable.json`. If this file not exists, create it.
