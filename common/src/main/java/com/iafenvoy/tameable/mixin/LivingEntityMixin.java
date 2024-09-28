@@ -10,23 +10,27 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity {
+    @Shadow
+    public abstract boolean isAlive();
+
     public LivingEntityMixin(EntityType<?> type, World world) {
         super(type, world);
     }
 
     @Inject(method = "onDeath", at = @At("RETURN"))
     private void showDeathMessage(DamageSource damageSource, CallbackInfo ci) {
+        if (!this.isAlive()) return;
         LivingEntity l = (LivingEntity) (Object) this;
         if (!(l instanceof MobEntity mob)) return;
         EntityTameData data = EntityTameData.get(mob);
-        if (!this.getWorld().isClient && this.getWorld().getGameRules().getBoolean(GameRules.SHOW_DEATH_MESSAGES) && data.getOwnerPlayer() instanceof ServerPlayerEntity player) {
+        if (!this.getWorld().isClient && this.getWorld().getGameRules().getBoolean(GameRules.SHOW_DEATH_MESSAGES) && data.getOwnerPlayer() instanceof ServerPlayerEntity player)
             player.sendMessage(mob.getDamageTracker().getDeathMessage());
-        }
     }
 }

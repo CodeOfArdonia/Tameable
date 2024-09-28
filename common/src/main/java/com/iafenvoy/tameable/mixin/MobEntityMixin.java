@@ -10,6 +10,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.GoalSelector;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.FoodComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
@@ -43,6 +44,7 @@ public abstract class MobEntityMixin extends LivingEntity {
 
     @Inject(method = "initGoals", at = @At("HEAD"))
     private void addTameGoals(CallbackInfo ci) {
+        if (!this.isAlive()) return;
         Optional<TameableConfig.TameableData> optional = TameableConfig.INSTANCE.get(this.getType());
         if (optional.isEmpty()) return;
         TameableConfig.TameableData data = optional.get();
@@ -57,6 +59,7 @@ public abstract class MobEntityMixin extends LivingEntity {
 
     @Inject(method = "interactWithItem", at = @At("HEAD"), cancellable = true)
     private void handleFeed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+        if (!this.isAlive()) return;
         Optional<TameableConfig.TameableData> optional = TameableConfig.INSTANCE.get(this.getType());
         if (optional.isEmpty()) return;
         TameableConfig.TameableData data = optional.get();
@@ -67,7 +70,8 @@ public abstract class MobEntityMixin extends LivingEntity {
             if (entityTameData.getOwner() != null) {
                 if (this.getHealth() < this.getMaxHealth() && entityTameData.getOwnerPlayer() == player) {
                     if (!player.isCreative()) stack.decrement(1);
-                    this.heal(stack.getItem().getFoodComponent().getHunger());
+                    FoodComponent component = stack.getItem().getFoodComponent();
+                    if (component != null) this.heal(component.getHunger());
                     cir.setReturnValue(ActionResult.SUCCESS);
                 }
             } else {
@@ -88,6 +92,7 @@ public abstract class MobEntityMixin extends LivingEntity {
 
     @Unique
     private void tameable$showEmoteParticle(boolean positive) {
+        if (!this.isAlive()) return;
         ParticleEffect particleEffect = ParticleTypes.HEART;
         if (!positive) particleEffect = ParticleTypes.SMOKE;
         for (int i = 0; i < 7; ++i) {

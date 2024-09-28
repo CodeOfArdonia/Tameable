@@ -4,7 +4,6 @@
   "package": "com.iafenvoy.tameable.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "EntityMixin",
     "LivingEntityMixin",
     "MobEntityMixin",
     "TargetPredicateMixin",
