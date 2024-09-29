@@ -21,6 +21,6 @@ public class TrackTargetGoalMixin {
     private void ignoreOwner(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity livingEntity = this.mob.getTarget();
         EntityTameData data = EntityTameData.get(this.mob);
-        if (data.getOwner() != null && data.getOwnerPlayer() == livingEntity) cir.setReturnValue(false);
+        if (data.getOwner() != null && data.getOwner().equals(livingEntity.getUuid())) cir.setReturnValue(false);
     }
 }

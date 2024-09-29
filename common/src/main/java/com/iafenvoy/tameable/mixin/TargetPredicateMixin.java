@@ -25,7 +25,7 @@ public class TargetPredicateMixin {
         if (this.predicate != null && !this.predicate.test(targetEntity)) return;
         if (baseEntity instanceof MobEntity mob) {
             EntityTameData data = EntityTameData.get(mob);
-            if (data.getOwner() != null && data.getOwnerPlayer() == targetEntity)
+            if (data.getOwner() != null && data.getOwner().equals(targetEntity.getUuid()))
                 cir.setReturnValue(false);
         }
     }

@@ -7,6 +7,7 @@ import net.minecraft.entity.mob.MobEntity;
 
 public class ComponentManagerImpl {
     public static EntityTameData getEntityData(MobEntity mob) {
-        return mob.getCapability(TameableProvider.CAPABILITY).map(TameableStorage::getData).orElse(new EntityTameData(mob));
+        return mob.getCapability(TameableProvider.CAPABILITY).map(TameableStorage::getData).orElse(new EntityTameData(mob, m -> {
+        }));
     }
 }
