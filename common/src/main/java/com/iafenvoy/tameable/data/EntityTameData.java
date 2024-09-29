@@ -7,15 +7,18 @@ import net.minecraft.nbt.NbtCompound;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class EntityTameData {
     private final MobEntity mob;
     @Nullable
     private UUID owner = null;
     private boolean sitting = false;
+    private final Consumer<MobEntity> syncFunc;
 
-    public EntityTameData(MobEntity mob) {
+    public EntityTameData(MobEntity mob, Consumer<MobEntity> syncFunc) {
         this.mob = mob;
+        this.syncFunc = syncFunc;
     }
 
     public MobEntity getMob() {
@@ -35,6 +38,7 @@ public class EntityTameData {
 
     public void convertSit() {
         this.sitting = !this.sitting;
+        this.syncFunc.accept(this.mob);
     }
 
     public boolean isSitting() {
@@ -43,10 +47,12 @@ public class EntityTameData {
 
     public void setSitting(boolean sitting) {
         this.sitting = sitting;
+        this.syncFunc.accept(this.mob);
     }
 
     public void setOwner(@Nullable UUID owner) {
         this.owner = owner;
+        this.syncFunc.accept(this.mob);
     }
 
     public void writeToNbt(NbtCompound nbt) {

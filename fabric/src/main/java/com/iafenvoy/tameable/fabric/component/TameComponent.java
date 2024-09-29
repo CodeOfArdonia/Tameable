@@ -16,7 +16,7 @@ public class TameComponent implements ComponentV3, AutoSyncedComponent {
     private final EntityTameData data;
 
     public TameComponent(MobEntity mob) {
-        this.data = new EntityTameData(mob);
+        this.data = new EntityTameData(mob, TAME_COMPONENT::sync);
     }
 
     public EntityTameData getData() {

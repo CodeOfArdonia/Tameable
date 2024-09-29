@@ -10,7 +10,9 @@ import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
 import net.minecraft.entity.EntityType;
+import net.minecraft.item.FoodComponent;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
@@ -23,17 +25,19 @@ import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public enum TameableConfig implements SynchronousResourceReloader {
     INSTANCE;
+    private static final Codec<Either<Item, TagKey<Item>>> ITEM_OR_TAG = Codec.either(Registries.ITEM.getCodec(), TagKey.codec(RegistryKeys.ITEM));
     private static final UnboundedMapCodec<EntityType<?>, TameableData> CODEC = Codec.unboundedMap(
             Registries.ENTITY_TYPE.getCodec(),
             RecordCodecBuilder.create(i1 -> i1.group(
-                    Codec.either(Registries.ITEM.getCodec(), TagKey.codec(RegistryKeys.ITEM)).listOf().fieldOf("food").forGetter(TameableData::food),
+                    ITEM_OR_TAG.listOf().fieldOf("tame").forGetter(TameableData::tame),
+                    Codec.either(ITEM_OR_TAG, RecordCodecBuilder.<BreedFoodData>create(i3 -> i3.group(
+                            ITEM_OR_TAG.fieldOf("item").forGetter(BreedFoodData::item),
+                            Codec.INT.optionalFieldOf("heal", 1).forGetter(BreedFoodData::heal)
+                    ).apply(i3, BreedFoodData::new))).listOf().optionalFieldOf("breed", new ArrayList<>()).forGetter(TameableData::breed),
                     Codec.DOUBLE.optionalFieldOf("chance", 1D).forGetter(TameableData::chance),
                     Codec.BOOL.optionalFieldOf("attack", false).forGetter(TameableData::attack),
                     RecordCodecBuilder.<FollowInfo>create(i2 -> i2.group(
@@ -65,8 +69,31 @@ public enum TameableConfig implements SynchronousResourceReloader {
         return Optional.ofNullable(this.data.get(type));
     }
 
-    public record TameableData(List<Either<Item, TagKey<Item>>> food, double chance, boolean attack, FollowInfo follow,
-                               boolean protect) {
+    public static boolean match(Either<Item, TagKey<Item>> either, ItemStack stack) {
+        return either.left().map(stack::isOf).orElse(false) || either.right().map(stack::isIn).orElse(false);
+    }
+
+    public record TameableData(List<Either<Item, TagKey<Item>>> tame,
+                               List<Either<Either<Item, TagKey<Item>>, BreedFoodData>> breed,
+                               double chance, boolean attack, FollowInfo follow, boolean protect) {
+        public boolean canTame(ItemStack stack) {
+            return this.tame.stream().anyMatch(x -> match(x, stack));
+        }
+
+        public boolean canBreed(ItemStack stack) {
+            return this.breed.isEmpty() ? this.canTame(stack) : this.breed.stream().anyMatch(x -> x.left().map(y -> match(y, stack)).orElse(false) || x.right().map(y -> match(y.item, stack)).orElse(false));
+        }
+
+        public int getBreedAmount(ItemStack stack) {
+            if (this.breed.isEmpty() || this.breed.stream().anyMatch(x -> x.left().map(y -> match(y, stack)).orElse(false))) {
+                FoodComponent component = stack.getItem().getFoodComponent();
+                return component == null ? 1 : component.getHunger();
+            }
+            return this.breed.stream().filter(x -> x.right().map(y -> match(y.item, stack)).orElse(false)).findFirst().map(x -> x.right().map(y -> y.heal).orElse(1)).orElse(1);
+        }
+    }
+
+    public record BreedFoodData(Either<Item, TagKey<Item>> item, int heal) {
     }
 
     public record FollowInfo(boolean enable, double speed, float minDistance, float maxDistance,

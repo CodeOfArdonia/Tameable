@@ -19,6 +19,9 @@
     ],
     "cardinal-components-entity": [
       "com.iafenvoy.tameable.fabric.component.ModComponentEntry"
+    ],
+    "jade": [
+      "com.iafenvoy.tameable.compat.TameableJadePlugin"
     ]
   },
   "custom": {

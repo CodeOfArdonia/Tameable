@@ -11,7 +11,8 @@ public class TameableStorage implements INBTSerializable<NbtCompound> {
     private final EntityTameData data;
 
     public TameableStorage(MobEntity mob) {
-        this.data = new EntityTameData(mob);
+        this.data = new EntityTameData(mob, m -> {
+        });
     }
 
     @Override

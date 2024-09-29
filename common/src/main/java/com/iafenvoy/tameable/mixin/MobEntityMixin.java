@@ -10,7 +10,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.GoalSelector;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.FoodComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
@@ -64,37 +63,40 @@ public abstract class MobEntityMixin extends LivingEntity {
         if (optional.isEmpty()) return;
         TameableConfig.TameableData data = optional.get();
         ItemStack stack = player.getStackInHand(hand);
-        if (data.food().stream().anyMatch(x -> x.left().map(stack::isOf).orElse(false) || x.right().map(stack::isIn).orElse(false))) {
-            MobEntity t = (MobEntity) (Object) this;
-            EntityTameData entityTameData = EntityTameData.get(t);
-            if (entityTameData.getOwner() != null) {
-                if (this.getHealth() < this.getMaxHealth() && entityTameData.getOwnerPlayer() == player) {
-                    if (!player.isCreative()) stack.decrement(1);
-                    FoodComponent component = stack.getItem().getFoodComponent();
-                    if (component != null) this.heal(component.getHunger());
-                    cir.setReturnValue(ActionResult.SUCCESS);
+        MobEntity t = (MobEntity) (Object) this;
+        EntityTameData entityTameData = EntityTameData.get(t);
+        if (entityTameData.getOwner() != null && data.canBreed(stack)) {
+            if (this.getHealth() < this.getMaxHealth() && entityTameData.getOwnerPlayer() == player) {
+                if (!player.isCreative()) {
+                    if (stack.isDamageable()) stack.damage(1, this.random, null);
+                    else stack.decrement(1);
                 }
-            } else {
-                if (!player.isCreative()) stack.decrement(1);
-                if (this.random.nextFloat() < data.chance()) {
-                    entityTameData.setOwner(player.getUuid());
-                    entityTameData.setSitting(false);
-                    this.getWorld().sendEntityStatus(this, (byte) 7);
-                    this.tameable$showEmoteParticle(true);
-                } else {
-                    this.getWorld().sendEntityStatus(this, (byte) 6);
-                    this.tameable$showEmoteParticle(false);
-                }
+                this.heal(data.getBreedAmount(stack));
                 cir.setReturnValue(ActionResult.SUCCESS);
             }
+        } else if (data.canTame(stack)) {
+            if (!player.isCreative()) {
+                if (stack.isDamageable()) stack.damage(1, this.random, null);
+                else stack.decrement(1);
+            }
+            if (this.random.nextFloat() < data.chance()) {
+                entityTameData.setOwner(player.getUuid());
+                entityTameData.setSitting(false);
+                this.getWorld().sendEntityStatus(this, (byte) 7);
+            } else this.getWorld().sendEntityStatus(this, (byte) 6);
+            cir.setReturnValue(ActionResult.SUCCESS);
         }
+    }
+
+    @Inject(method = "handleStatus", at = @At("HEAD"))
+    private void handleParticles(byte status, CallbackInfo ci) {
+        if (status == 7) this.tameable$showEmoteParticle(true);
+        else if (status == 6) this.tameable$showEmoteParticle(false);
     }
 
     @Unique
     private void tameable$showEmoteParticle(boolean positive) {
-        if (!this.isAlive()) return;
-        ParticleEffect particleEffect = ParticleTypes.HEART;
-        if (!positive) particleEffect = ParticleTypes.SMOKE;
+        ParticleEffect particleEffect = positive ? ParticleTypes.HEART : ParticleTypes.SMOKE;
         for (int i = 0; i < 7; ++i) {
             double d = this.random.nextGaussian() * 0.02;
             double e = this.random.nextGaussian() * 0.02;
