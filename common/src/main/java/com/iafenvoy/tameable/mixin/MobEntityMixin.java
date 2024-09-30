@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Mixin(MobEntity.class)
@@ -59,11 +60,11 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Inject(method = "interact", at = @At("HEAD"), cancellable = true)
     private void handleSit(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (player.getStackInHand(hand).isEmpty()) {
-            if(this.getWorld().isClient)
+            if (this.getWorld().isClient)
                 cir.setReturnValue(ActionResult.SUCCESS);
             MobEntity t = (MobEntity) (Object) this;
             EntityTameData entityTameData = EntityTameData.get(t);
-            if (!entityTameData.getOwner().equals(player.getUuid())) return;
+            if (!Objects.equals(entityTameData.getOwner(), player.getUuid())) return;
             entityTameData.convertSit();
             cir.setReturnValue(ActionResult.SUCCESS);
         }
@@ -72,7 +73,7 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Inject(method = "interactWithItem", at = @At("HEAD"), cancellable = true)
     private void handleFeed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (!this.isAlive()) return;
-        if(this.getWorld().isClient)
+        if (this.getWorld().isClient)
             cir.setReturnValue(ActionResult.SUCCESS);
         Optional<TameableConfig.TameableData> optional = TameableConfig.INSTANCE.get(this.getType());
         if (optional.isEmpty()) return;
@@ -81,7 +82,7 @@ public abstract class MobEntityMixin extends LivingEntity {
         MobEntity t = (MobEntity) (Object) this;
         EntityTameData entityTameData = EntityTameData.get(t);
         if (entityTameData.getOwner() != null && data.canBreed(stack)) {
-            if (this.getHealth() < this.getMaxHealth() && entityTameData.getOwner().equals(player.getUuid())) {
+            if (this.getHealth() < this.getMaxHealth() && Objects.equals(entityTameData.getOwner(), player.getUuid())) {
                 if (!player.isCreative()) {
                     if (stack.isDamageable()) stack.damage(1, this.random, null);
                     else stack.decrement(1);
