@@ -16,12 +16,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
+import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.SynchronousResourceReloader;
+import net.minecraft.util.Identifier;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,39 +33,58 @@ import java.util.*;
 public enum TameableConfig implements SynchronousResourceReloader {
     INSTANCE;
     private static final Codec<Either<Item, TagKey<Item>>> ITEM_OR_TAG = Codec.either(Registries.ITEM.getCodec(), TagKey.codec(RegistryKeys.ITEM));
-    private static final UnboundedMapCodec<EntityType<?>, TameableData> CODEC = Codec.unboundedMap(
-            Registries.ENTITY_TYPE.getCodec(),
-            RecordCodecBuilder.create(i1 -> i1.group(
-                    ITEM_OR_TAG.listOf().fieldOf("tame").forGetter(TameableData::tame),
-                    Codec.either(ITEM_OR_TAG, RecordCodecBuilder.<BreedFoodData>create(i3 -> i3.group(
-                            ITEM_OR_TAG.fieldOf("item").forGetter(BreedFoodData::item),
-                            Codec.INT.optionalFieldOf("heal", 1).forGetter(BreedFoodData::heal)
-                    ).apply(i3, BreedFoodData::new))).listOf().optionalFieldOf("breed", new ArrayList<>()).forGetter(TameableData::breed),
-                    Codec.DOUBLE.optionalFieldOf("chance", 1D).forGetter(TameableData::chance),
-                    Codec.BOOL.optionalFieldOf("attack", false).forGetter(TameableData::attack),
-                    RecordCodecBuilder.<FollowInfo>create(i2 -> i2.group(
-                            Codec.BOOL.optionalFieldOf("enable", false).forGetter(FollowInfo::enable),
-                            Codec.DOUBLE.optionalFieldOf("speed", 1D).forGetter(FollowInfo::speed),
-                            Codec.FLOAT.optionalFieldOf("minDistance", 10F).forGetter(FollowInfo::minDistance),
-                            Codec.FLOAT.optionalFieldOf("maxDistance", 2F).forGetter(FollowInfo::maxDistance),
-                            Codec.BOOL.optionalFieldOf("leavesAllowed", false).forGetter(FollowInfo::leavesAllowed)
-                    ).apply(i2, FollowInfo::new)).optionalFieldOf("follow", new FollowInfo(false, 1, 10, 2, false)).forGetter(TameableData::follow),
-                    Codec.BOOL.optionalFieldOf("protect", false).forGetter(TameableData::protect)
-            ).apply(i1, TameableData::new)));
+    private static final Codec<TameableData> DATAPACK_CODEC = RecordCodecBuilder.create(i1 -> i1.group(
+            ITEM_OR_TAG.listOf().fieldOf("tame").forGetter(TameableData::tame),
+            Codec.either(ITEM_OR_TAG, RecordCodecBuilder.<BreedFoodData>create(i3 -> i3.group(
+                    ITEM_OR_TAG.fieldOf("item").forGetter(BreedFoodData::item),
+                    Codec.INT.optionalFieldOf("heal", 1).forGetter(BreedFoodData::heal)
+            ).apply(i3, BreedFoodData::new))).listOf().optionalFieldOf("breed", new ArrayList<>()).forGetter(TameableData::breed),
+            Codec.DOUBLE.optionalFieldOf("chance", 1D).forGetter(TameableData::chance),
+            Codec.BOOL.optionalFieldOf("attack", false).forGetter(TameableData::attack),
+            RecordCodecBuilder.<FollowInfo>create(i2 -> i2.group(
+                    Codec.BOOL.optionalFieldOf("enable", false).forGetter(FollowInfo::enable),
+                    Codec.DOUBLE.optionalFieldOf("speed", 1D).forGetter(FollowInfo::speed),
+                    Codec.FLOAT.optionalFieldOf("minDistance", 10F).forGetter(FollowInfo::minDistance),
+                    Codec.FLOAT.optionalFieldOf("maxDistance", 2F).forGetter(FollowInfo::maxDistance),
+                    Codec.BOOL.optionalFieldOf("leavesAllowed", false).forGetter(FollowInfo::leavesAllowed)
+            ).apply(i2, FollowInfo::new)).optionalFieldOf("follow", new FollowInfo(false, 1, 10, 2, false)).forGetter(TameableData::follow),
+            Codec.BOOL.optionalFieldOf("protect", false).forGetter(TameableData::protect)
+    ).apply(i1, TameableData::new));
+    private static final UnboundedMapCodec<EntityType<?>, TameableData> CONFIG_CODEC = Codec.unboundedMap(Registries.ENTITY_TYPE.getCodec(), DATAPACK_CODEC);
     private static final String PATH = "./config/tameable.json";
-    private Map<EntityType<?>, TameableData> data = new HashMap<>();
+    private final Map<EntityType<?>, TameableData> data = new HashMap<>();
 
     @Override
     public void reload(ResourceManager manager) {
+        this.data.clear();
+        //Firstly, read data from datapack(s)
+        for (Map.Entry<Identifier, Resource> entry : manager.findResources("tameable", p -> p.getPath().endsWith(".json")).entrySet()) {
+            Identifier id = entry.getKey();
+            Resource resource = entry.getValue();
+            Identifier entity = new Identifier(id.getNamespace(), id.getPath().replace("tameable/", "").replace(".json", ""));
+            if (!Registries.ENTITY_TYPE.containsId(entity)) {
+                Tameable.LOGGER.error("Cannot find entity {} in tameable data of {}", entity, resource.getResourcePackName());
+                continue;
+            }
+            try {
+                JsonElement element = JsonParser.parseReader(new InputStreamReader(resource.getInputStream()));
+                DataResult<TameableData> d = DATAPACK_CODEC.parse(JsonOps.INSTANCE, element);
+                this.data.put(Registries.ENTITY_TYPE.get(entity), d.resultOrPartial(Tameable.LOGGER::error).orElseThrow());
+            } catch (Exception e) {
+                Tameable.LOGGER.error("Failed to load {} from datapack {}.", entity, resource.getResourcePackName(), e);
+            }
+
+        }
+        //Then, read from config.
         try {
             if (!Files.exists(Path.of(PATH))) FileUtils.write(new File(PATH), "{}", StandardCharsets.UTF_8);
             JsonElement element = JsonParser.parseReader(new FileReader(PATH));
-            DataResult<Map<EntityType<?>, TameableData>> result = CODEC.parse(JsonOps.INSTANCE, element);
-            this.data = result.resultOrPartial(Tameable.LOGGER::error).orElseThrow();
-            Tameable.LOGGER.info("Successfully loaded {} entity tame config.", this.data.keySet().size());
+            DataResult<Map<EntityType<?>, TameableData>> result = CONFIG_CODEC.parse(JsonOps.INSTANCE, element);
+            this.data.putAll(result.resultOrPartial(Tameable.LOGGER::error).orElseThrow());
         } catch (Exception e) {
-            Tameable.LOGGER.error("Failed to load tameable config:", e);
+            Tameable.LOGGER.error("Failed to load tameable config.", e);
         }
+        Tameable.LOGGER.info("Successfully loaded {} entity tame config.", this.data.keySet().size());
     }
 
     public Optional<TameableData> get(EntityType<?> type) {

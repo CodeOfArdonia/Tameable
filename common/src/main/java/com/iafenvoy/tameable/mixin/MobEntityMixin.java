@@ -59,6 +59,8 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Inject(method = "interact", at = @At("HEAD"), cancellable = true)
     private void handleSit(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (player.getStackInHand(hand).isEmpty()) {
+            if(this.getWorld().isClient)
+                cir.setReturnValue(ActionResult.SUCCESS);
             MobEntity t = (MobEntity) (Object) this;
             EntityTameData entityTameData = EntityTameData.get(t);
             if (!entityTameData.getOwner().equals(player.getUuid())) return;
@@ -70,6 +72,8 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Inject(method = "interactWithItem", at = @At("HEAD"), cancellable = true)
     private void handleFeed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (!this.isAlive()) return;
+        if(this.getWorld().isClient)
+            cir.setReturnValue(ActionResult.SUCCESS);
         Optional<TameableConfig.TameableData> optional = TameableConfig.INSTANCE.get(this.getType());
         if (optional.isEmpty()) return;
         TameableConfig.TameableData data = optional.get();
