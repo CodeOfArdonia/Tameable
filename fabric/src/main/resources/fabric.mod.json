@@ -17,6 +17,9 @@
     "main": [
       "com.iafenvoy.tameable.fabric.TameableFabric"
     ],
+    "client": [
+      "com.iafenvoy.tameable.fabric.TameableFabricClient"
+    ],
     "cardinal-components-entity": [
       "com.iafenvoy.tameable.fabric.component.ModComponentEntry"
     ],

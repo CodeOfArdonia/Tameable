@@ -1,5 +1,6 @@
 package com.iafenvoy.tameable.goal;
 
+import com.iafenvoy.tameable.config.TameableConfig;
 import com.iafenvoy.tameable.data.EntityTameData;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.TargetPredicate;
@@ -18,7 +19,9 @@ public class CustomTrackOwnerAttackerGoal extends TrackTargetGoal {
         this.setControls(EnumSet.of(Control.TARGET));
     }
 
+    @Override
     public boolean canStart() {
+        if(!TameableConfig.INSTANCE.get(this.mob.getType()).protect()) return false;
         EntityTameData data = EntityTameData.get(this.mob);
         if (data.getOwner() != null && !data.isSitting()) {
             PlayerEntity player = data.getOwnerPlayer();
@@ -31,6 +34,7 @@ public class CustomTrackOwnerAttackerGoal extends TrackTargetGoal {
         } else return false;
     }
 
+    @Override
     public void start() {
         this.mob.setTarget(this.attacker);
         PlayerEntity player = EntityTameData.get(this.mob).getOwnerPlayer();

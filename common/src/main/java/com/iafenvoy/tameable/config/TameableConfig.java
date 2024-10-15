@@ -2,7 +2,11 @@ package com.iafenvoy.tameable.config;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.iafenvoy.tameable.Static;
 import com.iafenvoy.tameable.Tameable;
+import com.iafenvoy.tameable.network.ByteBufUtil;
+import com.iafenvoy.tameable.network.NetworkConstants;
+import com.iafenvoy.tameable.network.ServerNetworkHelper;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -13,12 +17,14 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.item.FoodComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.SynchronousResourceReloader;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.apache.commons.io.FileUtils;
 
@@ -28,7 +34,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public enum TameableConfig implements SynchronousResourceReloader {
     INSTANCE;
@@ -47,7 +56,7 @@ public enum TameableConfig implements SynchronousResourceReloader {
                     Codec.FLOAT.optionalFieldOf("minDistance", 10F).forGetter(FollowInfo::minDistance),
                     Codec.FLOAT.optionalFieldOf("maxDistance", 2F).forGetter(FollowInfo::maxDistance),
                     Codec.BOOL.optionalFieldOf("leavesAllowed", false).forGetter(FollowInfo::leavesAllowed)
-            ).apply(i2, FollowInfo::new)).optionalFieldOf("follow", new FollowInfo(false, 1, 10, 2, false)).forGetter(TameableData::follow),
+            ).apply(i2, FollowInfo::new)).optionalFieldOf("follow", FollowInfo.EMPTY).forGetter(TameableData::follow),
             Codec.BOOL.optionalFieldOf("protect", false).forGetter(TameableData::protect)
     ).apply(i1, TameableData::new));
     private static final UnboundedMapCodec<EntityType<?>, TameableData> CONFIG_CODEC = Codec.unboundedMap(Registries.ENTITY_TYPE.getCodec(), DATAPACK_CODEC);
@@ -85,10 +94,34 @@ public enum TameableConfig implements SynchronousResourceReloader {
             Tameable.LOGGER.error("Failed to load tameable config.", e);
         }
         Tameable.LOGGER.info("Successfully loaded {} entity tame config.", this.data.keySet().size());
+        //Finally, send to all players
+        if (Static.server != null && Static.server.isRunning() && Static.server.isDedicated()) {
+            PacketByteBuf buf = this.toBuffer();
+            for (ServerPlayerEntity serverPlayer : Static.server.getPlayerManager().getPlayerList())
+                ServerNetworkHelper.sendToPlayer(serverPlayer, NetworkConstants.TAMEABLE_DATA_SYNC, buf);
+            Tameable.LOGGER.info("Successfully send tame config to {} players.", Static.server.getPlayerManager().getPlayerList().size());
+        }
     }
 
-    public Optional<TameableData> get(EntityType<?> type) {
-        return Optional.ofNullable(this.data.get(type));
+    public PacketByteBuf toBuffer() {
+        return ByteBufUtil.create().writeString(CONFIG_CODEC.encodeStart(JsonOps.INSTANCE, this.data).resultOrPartial(Tameable.LOGGER::error).orElseThrow().toString());
+    }
+
+    public void loadFromServer(String data) {
+        Tameable.LOGGER.info("Receive data from server, loading...");
+        this.data.clear();
+        try {
+            JsonElement element = JsonParser.parseString(data);
+            DataResult<Map<EntityType<?>, TameableData>> result = CONFIG_CODEC.parse(JsonOps.INSTANCE, element);
+            this.data.putAll(result.resultOrPartial(Tameable.LOGGER::error).orElseThrow());
+        } catch (Exception e) {
+            Tameable.LOGGER.error("Failed to load from server tameable config.", e);
+        }
+        Tameable.LOGGER.info("Successfully loaded {} entity tame config from server.", this.data.keySet().size());
+    }
+
+    public TameableData get(EntityType<?> type) {
+        return this.data.getOrDefault(type, TameableData.DEFAULT);
     }
 
     public static boolean match(Either<Item, TagKey<Item>> either, ItemStack stack) {
@@ -98,6 +131,8 @@ public enum TameableConfig implements SynchronousResourceReloader {
     public record TameableData(List<Either<Item, TagKey<Item>>> tame,
                                List<Either<Either<Item, TagKey<Item>>, BreedFoodData>> breed,
                                double chance, boolean attack, FollowInfo follow, boolean protect) {
+        public static TameableData DEFAULT = new TameableData(new ArrayList<>(), new ArrayList<>(), 0, false, FollowInfo.EMPTY, false);
+
         public boolean canTame(ItemStack stack) {
             return this.tame.stream().anyMatch(x -> match(x, stack));
         }
@@ -113,6 +148,10 @@ public enum TameableConfig implements SynchronousResourceReloader {
             }
             return this.breed.stream().filter(x -> x.right().map(y -> match(y.item, stack)).orElse(false)).findFirst().map(x -> x.right().map(y -> y.heal).orElse(1)).orElse(1);
         }
+
+        public boolean isEmpty() {
+            return this == DEFAULT;
+        }
     }
 
     public record BreedFoodData(Either<Item, TagKey<Item>> item, int heal) {
@@ -120,5 +159,6 @@ public enum TameableConfig implements SynchronousResourceReloader {
 
     public record FollowInfo(boolean enable, double speed, float minDistance, float maxDistance,
                              boolean leavesAllowed) {
+        public static final FollowInfo EMPTY = new FollowInfo(false, 1, 10, 2, false);
     }
 }

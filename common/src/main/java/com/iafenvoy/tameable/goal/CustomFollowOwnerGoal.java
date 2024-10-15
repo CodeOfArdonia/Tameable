@@ -1,11 +1,14 @@
 package com.iafenvoy.tameable.goal;
 
+import com.iafenvoy.tameable.config.TameableConfig;
 import com.iafenvoy.tameable.data.EntityTameData;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.pathing.*;
+import net.minecraft.entity.ai.pathing.EntityNavigation;
+import net.minecraft.entity.ai.pathing.LandPathNodeMaker;
+import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
@@ -17,65 +20,81 @@ public class CustomFollowOwnerGoal extends Goal {
     private final MobEntity mob;
     private LivingEntity owner;
     private final WorldView world;
-    private final double speed;
     private final EntityNavigation navigation;
     private int updateCountdownTicks;
-    private final float maxDistance;
-    private final float minDistance;
     private float oldWaterPathfindingPenalty;
-    private final boolean leavesAllowed;
 
-    public CustomFollowOwnerGoal(MobEntity mob, double speed, float minDistance, float maxDistance, boolean leavesAllowed) {
+    public CustomFollowOwnerGoal(MobEntity mob) {
         this.mob = mob;
         this.world = mob.getWorld();
-        this.speed = speed;
         this.navigation = mob.getNavigation();
-        this.minDistance = minDistance;
-        this.maxDistance = maxDistance;
-        this.leavesAllowed = leavesAllowed;
         this.setControls(EnumSet.of(Control.MOVE, Control.LOOK));
     }
 
+    private double getSpeed() {
+        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().speed();
+    }
+
+    private float getMinDistance() {
+        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().minDistance();
+    }
+
+    private float getMaxDistance() {
+        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().maxDistance();
+    }
+
+    private boolean leavesAllowed() {
+        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().leavesAllowed();
+    }
+
+    @Override
     public boolean canStart() {
+        if (!TameableConfig.INSTANCE.get(this.mob.getType()).follow().enable()) return false;
         PlayerEntity player = EntityTameData.get(this.mob).getOwnerPlayer();
         if (player == null) return false;
         else if (player.isSpectator()) return false;
         else if (this.cannotFollow()) return false;
-        else if (this.mob.squaredDistanceTo(player) < (double) (this.minDistance * this.minDistance)) return false;
+        else if (this.mob.squaredDistanceTo(player) < (double) (this.getMinDistance() * this.getMinDistance()))
+            return false;
         else {
             this.owner = player;
             return true;
         }
     }
 
+    @Override
     public boolean shouldContinue() {
         if (this.navigation.isIdle()) return false;
         else if (this.cannotFollow()) return false;
-        else return !(this.mob.squaredDistanceTo(this.owner) <= (double) (this.maxDistance * this.maxDistance));
+        else
+            return !(this.mob.squaredDistanceTo(this.owner) <= (double) (this.getMaxDistance() * this.getMaxDistance()));
     }
 
     private boolean cannotFollow() {
         return EntityTameData.get(this.mob).getOwner() == null || EntityTameData.get(this.mob).isSitting() || this.mob.hasVehicle() || this.mob.isLeashed();
     }
 
+    @Override
     public void start() {
         this.updateCountdownTicks = 0;
         this.oldWaterPathfindingPenalty = this.mob.getPathfindingPenalty(PathNodeType.WATER);
         this.mob.setPathfindingPenalty(PathNodeType.WATER, 0.0F);
     }
 
+    @Override
     public void stop() {
         this.owner = null;
         this.navigation.stop();
         this.mob.setPathfindingPenalty(PathNodeType.WATER, this.oldWaterPathfindingPenalty);
     }
 
+    @Override
     public void tick() {
         this.mob.getLookControl().lookAt(this.owner, 10.0F, (float) this.mob.getMaxLookPitchChange());
         if (--this.updateCountdownTicks <= 0) {
             this.updateCountdownTicks = this.getTickCount(10);
             if (this.mob.squaredDistanceTo(this.owner) >= 144.0) this.tryTeleport();
-            else this.navigation.startMovingTo(this.owner, this.speed);
+            else this.navigation.startMovingTo(this.owner, this.getSpeed());
         }
     }
 
@@ -107,7 +126,7 @@ public class CustomFollowOwnerGoal extends Goal {
             return false;
         else {
             BlockState blockState = this.world.getBlockState(pos.down());
-            if (!this.leavesAllowed && blockState.getBlock() instanceof LeavesBlock) return false;
+            if (!this.leavesAllowed() && blockState.getBlock() instanceof LeavesBlock) return false;
             else
                 return this.world.isSpaceEmpty(this.mob, this.mob.getBoundingBox().offset(pos.subtract(this.mob.getBlockPos())));
         }

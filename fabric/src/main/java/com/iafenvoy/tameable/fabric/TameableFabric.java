@@ -12,6 +12,8 @@ import net.minecraft.util.Identifier;
 public class TameableFabric implements ModInitializer {
     @Override
     public void onInitialize() {
+        Tameable.init();
+        Tameable.process();
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public void reload(ResourceManager manager) {
