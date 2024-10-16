@@ -4,7 +4,6 @@ import com.iafenvoy.tameable.Tameable;
 import com.iafenvoy.tameable.data.EntityTameData;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import snownee.jade.api.EntityAccessor;

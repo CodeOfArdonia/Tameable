@@ -131,7 +131,7 @@ public enum TameableConfig implements SynchronousResourceReloader {
     public record TameableData(List<Either<Item, TagKey<Item>>> tame,
                                List<Either<Either<Item, TagKey<Item>>, BreedFoodData>> breed,
                                double chance, boolean attack, FollowInfo follow, boolean protect) {
-        public static TameableData DEFAULT = new TameableData(new ArrayList<>(), new ArrayList<>(), 0, false, FollowInfo.EMPTY, false);
+        public static TameableData DEFAULT = new TameableData(new ArrayList<>(), new ArrayList<>(), 0, true, new TameableConfig.FollowInfo(true, 1.0, 10.0F, 2.0F, false), true);
 
         public boolean canTame(ItemStack stack) {
             return this.tame.stream().anyMatch(x -> match(x, stack));

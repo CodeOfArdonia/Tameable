@@ -2,6 +2,7 @@ package com.iafenvoy.tameable.mixin;
 
 import com.iafenvoy.tameable.config.TameableConfig;
 import com.iafenvoy.tameable.data.EntityTameData;
+import com.iafenvoy.tameable.event.TamableInteractionCallback;
 import com.iafenvoy.tameable.goal.CustomAttackWithOwnerGoal;
 import com.iafenvoy.tameable.goal.CustomFollowOwnerGoal;
 import com.iafenvoy.tameable.goal.CustomTrackOwnerAttackerGoal;
@@ -54,12 +55,13 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Inject(method = "interact", at = @At("HEAD"), cancellable = true)
     private void handleSit(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (player.getStackInHand(hand).isEmpty()) {
+            MobEntity mob = (MobEntity) (Object) this;
             if (this.getEntityWorld().isClient) {
                 TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
-                if (!data.isEmpty()) cir.setReturnValue(ActionResult.SUCCESS);
+                if (TamableInteractionCallback.EVENT.invoker().shouldInteract(mob, player, hand) || !data.isEmpty())
+                    cir.setReturnValue(ActionResult.SUCCESS);
                 return;
             }
-            MobEntity mob = (MobEntity) (Object) this;
             EntityTameData entityTameData = EntityTameData.get(mob);
             if (!Objects.equals(entityTameData.getOwner(), player.getUuid())) return;
             entityTameData.convertSit();
@@ -72,12 +74,12 @@ public abstract class MobEntityMixin extends LivingEntity {
         if (!this.isAlive()) return;
         TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
         ItemStack stack = player.getStackInHand(hand);
+        MobEntity t = (MobEntity) (Object) this;
         if (this.getEntityWorld().isClient) {
-            if (!data.isEmpty() && this.getHealth() < this.getMaxHealth() && data.canInteract(stack))
+            if (TamableInteractionCallback.EVENT.invoker().shouldInteract(t, player, hand) || !data.isEmpty() && this.getHealth() < this.getMaxHealth() && data.canInteract(stack))
                 cir.setReturnValue(ActionResult.SUCCESS);
             return;
         }
-        MobEntity t = (MobEntity) (Object) this;
         EntityTameData entityTameData = EntityTameData.get(t);
         if (entityTameData.getOwner() != null && data.canBreed(stack)) {
             if (this.getHealth() < this.getMaxHealth() && Objects.equals(entityTameData.getOwner(), player.getUuid())) {
