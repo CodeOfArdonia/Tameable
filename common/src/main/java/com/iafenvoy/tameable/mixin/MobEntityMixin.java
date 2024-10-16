@@ -55,7 +55,8 @@ public abstract class MobEntityMixin extends LivingEntity {
     private void handleSit(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (player.getStackInHand(hand).isEmpty()) {
             if (this.getEntityWorld().isClient) {
-                if (!TameableConfig.INSTANCE.get(this.getType()).isEmpty()) cir.setReturnValue(ActionResult.SUCCESS);
+                TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
+                if (!data.isEmpty()) cir.setReturnValue(ActionResult.SUCCESS);
                 return;
             }
             MobEntity mob = (MobEntity) (Object) this;
@@ -69,13 +70,13 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Inject(method = "interactWithItem", at = @At("HEAD"), cancellable = true)
     private void handleFeed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (!this.isAlive()) return;
+        TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
+        ItemStack stack = player.getStackInHand(hand);
         if (this.getEntityWorld().isClient) {
-            if (!TameableConfig.INSTANCE.get(this.getType()).isEmpty() && this.getHealth() < this.getMaxHealth())
+            if (!data.isEmpty() && this.getHealth() < this.getMaxHealth() && data.canInteract(stack))
                 cir.setReturnValue(ActionResult.SUCCESS);
             return;
         }
-        TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
-        ItemStack stack = player.getStackInHand(hand);
         MobEntity t = (MobEntity) (Object) this;
         EntityTameData entityTameData = EntityTameData.get(t);
         if (entityTameData.getOwner() != null && data.canBreed(stack)) {
@@ -87,7 +88,7 @@ public abstract class MobEntityMixin extends LivingEntity {
                 this.heal(data.getBreedAmount(stack));
                 cir.setReturnValue(ActionResult.SUCCESS);
             }
-        } else if (data.canTame(stack)) {
+        } else if (entityTameData.getOwner() == null && data.canTame(stack)) {
             if (!player.isCreative()) {
                 if (stack.isDamageable()) stack.damage(1, this.random, null);
                 else stack.decrement(1);

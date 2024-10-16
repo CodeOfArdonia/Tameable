@@ -30,7 +30,7 @@ public enum TamableMobProvider implements IEntityComponentProvider, IServerDataP
     public void appendTooltip(ITooltip iTooltip, EntityAccessor entityAccessor, IPluginConfig iPluginConfig) {
         UUID uuid;
         boolean sitting;
-        if (entityAccessor.getServerData().contains(OWNER_KEY, NbtElement.LIST_TYPE)) {
+        if (entityAccessor.getServerData().contains(OWNER_KEY)) {
             uuid = entityAccessor.getServerData().getUuid(OWNER_KEY);
             sitting = entityAccessor.getServerData().getBoolean(SIT_KEY);
         } else {

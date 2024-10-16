@@ -1,6 +1,7 @@
 package com.iafenvoy.tameable.forge.component;
 
 import com.iafenvoy.tameable.data.EntityTameData;
+import com.iafenvoy.tameable.network.ServerNetworkHelper;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraftforge.common.capabilities.AutoRegisterCapability;
@@ -11,8 +12,7 @@ public class TameableStorage implements INBTSerializable<NbtCompound> {
     private final EntityTameData data;
 
     public TameableStorage(MobEntity mob) {
-        this.data = new EntityTameData(mob, m -> {
-        });
+        this.data = new EntityTameData(mob);
     }
 
     @Override

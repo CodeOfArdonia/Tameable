@@ -6,17 +6,18 @@ import dev.onyxstudios.cca.api.v3.component.ComponentKey;
 import dev.onyxstudios.cca.api.v3.component.ComponentRegistryV3;
 import dev.onyxstudios.cca.api.v3.component.ComponentV3;
 import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
+import dev.onyxstudios.cca.api.v3.component.tick.ServerTickingComponent;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 
-public class TameComponent implements ComponentV3, AutoSyncedComponent {
+public class TameComponent implements ComponentV3, ServerTickingComponent, AutoSyncedComponent {
     public static final ComponentKey<TameComponent> TAME_COMPONENT = ComponentRegistryV3.INSTANCE.getOrCreate(Identifier.of(Tameable.MOD_ID, "tame_data"), TameComponent.class);
 
     private final EntityTameData data;
 
     public TameComponent(MobEntity mob) {
-        this.data = new EntityTameData(mob, TAME_COMPONENT::sync);
+        this.data = new EntityTameData(mob);
     }
 
     public EntityTameData getData() {
@@ -31,5 +32,12 @@ public class TameComponent implements ComponentV3, AutoSyncedComponent {
     @Override
     public void writeToNbt(NbtCompound tag) {
         this.data.writeToNbt(tag);
+    }
+
+    @Override
+    public void serverTick() {
+        //We don't need to sync now
+//        if (this.data.isDirty())
+//            TAME_COMPONENT.sync(this.data.getMob());
     }
 }

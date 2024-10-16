@@ -141,6 +141,10 @@ public enum TameableConfig implements SynchronousResourceReloader {
             return this.breed.isEmpty() ? this.canTame(stack) : this.breed.stream().anyMatch(x -> x.left().map(y -> match(y, stack)).orElse(false) || x.right().map(y -> match(y.item, stack)).orElse(false));
         }
 
+        public boolean canInteract(ItemStack stack) {
+            return this.canTame(stack) || this.canBreed(stack);
+        }
+
         public int getBreedAmount(ItemStack stack) {
             if (this.breed.isEmpty() || this.breed.stream().anyMatch(x -> x.left().map(y -> match(y, stack)).orElse(false))) {
                 FoodComponent component = stack.getItem().getFoodComponent();

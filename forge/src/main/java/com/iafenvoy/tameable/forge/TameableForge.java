@@ -22,7 +22,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 @Mod(Tameable.MOD_ID)
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class TameableForge {
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(new Identifier(Tameable.MOD_ID, "buf"), () -> "1", s -> true, s -> true);
 
@@ -39,15 +39,18 @@ public class TameableForge {
         CHANNEL.registerMessage(1, PacketByteBufS2C.class, PacketByteBufS2C::encode, PacketByteBufS2C::decode, PacketByteBufS2C::handle);
     }
 
-    @SubscribeEvent
-    public static void registerReloadListener(AddReloadListenerEvent event) {
-        event.addListener(TameableConfig.INSTANCE);
-    }
+    @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE)
+    public static class ForgeEvents {
+        @SubscribeEvent
+        public static void registerReloadListener(AddReloadListenerEvent event) {
+            event.addListener(TameableConfig.INSTANCE);
+        }
 
-    @SubscribeEvent
-    public static void attachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
-        if (event.getObject() instanceof MobEntity mob && !mob.getCapability(TameableProvider.CAPABILITY).isPresent())
-            event.addCapability(new Identifier(Tameable.MOD_ID, "tame_data"), new TameableProvider(mob));
+        @SubscribeEvent
+        public static void attachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
+            if (event.getObject() instanceof MobEntity mob && !mob.getCapability(TameableProvider.CAPABILITY).isPresent())
+                event.addCapability(new Identifier(Tameable.MOD_ID, "tame_data"), new TameableProvider(mob));
+        }
     }
 
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
