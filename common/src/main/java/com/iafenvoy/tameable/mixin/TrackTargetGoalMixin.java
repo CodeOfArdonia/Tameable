@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Objects;
+
 @Mixin(TrackTargetGoal.class)
 public class TrackTargetGoalMixin {
     @Shadow
@@ -21,6 +23,7 @@ public class TrackTargetGoalMixin {
     private void ignoreOwner(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity livingEntity = this.mob.getTarget();
         EntityTameData data = EntityTameData.get(this.mob);
-        if (data.getOwner() != null && data.getOwner().equals(livingEntity.getUuid())) cir.setReturnValue(false);
+        if (data.getOwner() != null && livingEntity != null && Objects.equals(data.getOwner(), livingEntity.getUuid()))
+            cir.setReturnValue(false);
     }
 }
