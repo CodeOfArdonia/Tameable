@@ -8,7 +8,7 @@ This mod provides a configurable system to control which mobs you can tame.
 
 ## How to use
 
-There are two ways to configure.
+You can use command `/tame <entityUuid> <ownerUuid>` to tame manually (`ownerUuid` leave blank to remove owner). Also, there are two ways to configure.
 
 ### Configure with data driven (Recommended)
 

@@ -3,6 +3,7 @@ package com.iafenvoy.tameable.forge;
 import com.iafenvoy.tameable.Tameable;
 import com.iafenvoy.tameable.TameableClient;
 import com.iafenvoy.tameable.config.TameableConfig;
+import com.iafenvoy.tameable.data.TameCommand;
 import com.iafenvoy.tameable.forge.component.TameableProvider;
 import com.iafenvoy.tameable.forge.network.PacketByteBufC2S;
 import com.iafenvoy.tameable.forge.network.PacketByteBufS2C;
@@ -12,6 +13,7 @@ import net.minecraft.util.Identifier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
@@ -50,6 +52,11 @@ public class TameableForge {
         public static void attachEntityCapabilities(AttachCapabilitiesEvent<Entity> event) {
             if (event.getObject() instanceof MobEntity mob && !mob.getCapability(TameableProvider.CAPABILITY).isPresent())
                 event.addCapability(new Identifier(Tameable.MOD_ID, "tame_data"), new TameableProvider(mob));
+        }
+
+        @SubscribeEvent
+        public static void registerCommand(RegisterCommandsEvent event) {
+            event.getDispatcher().register(TameCommand.TAME);
         }
     }
 
