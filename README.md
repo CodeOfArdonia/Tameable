@@ -6,6 +6,9 @@ This mod provides a configurable system to control which mobs you can tame.
 
 **Note: Some entities may meet bugs since this mod doesn't rewrite the full AI!**
 
+If you are a newcomer of datapack or just want to tame everything, try this addon:
+[Tame Tools](https://github.com/ArkTechMC/TameTools)([CurseForge](https://www.curseforge.com/minecraft/mc-mods/tame-tools)|[Modrinth](https://modrinth.com/mod/tame-tools))
+
 ## How to use
 
 You can use command `/tame <entityUuid> <ownerUuid>` to tame manually (`ownerUuid` leave blank to remove owner). Also, there are two ways to configure.
