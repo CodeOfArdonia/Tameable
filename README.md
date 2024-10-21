@@ -51,7 +51,7 @@ Create file `data/<entity mod id>/tameable/<entity id>.json` in your datapack or
     //The min range to start follow
     "maxDistance": 2,
     //Can leave
-    "leavesAllowed": false,
+    "leavesAllowed": false
   }
 }
 ```
@@ -82,7 +82,7 @@ Default Values:
     "speed": 1,
     "minDistance": 10,
     "maxDistance": 2,
-    "leavesAllowed": false,
+    "leavesAllowed": false
   }
 }
 ```
