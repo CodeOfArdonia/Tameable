@@ -38,6 +38,9 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Final
     protected GoalSelector targetSelector;
 
+    @Shadow
+    public abstract void setAiDisabled(boolean aiDisabled);
+
     protected MobEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
         super(entityType, world);
     }
@@ -47,7 +50,7 @@ public abstract class MobEntityMixin extends LivingEntity {
         if (!this.isAlive()) return;
         MobEntity mob = (MobEntity) (Object) this;
         this.targetSelector.add(2, new CustomAttackWithOwnerGoal(mob));
-        this.goalSelector.add(1, new CustomFollowOwnerGoal(mob));
+        this.goalSelector.add(2, new CustomFollowOwnerGoal(mob));
         this.targetSelector.add(2, new CustomTrackOwnerAttackerGoal(mob));
     }
 
@@ -58,13 +61,14 @@ public abstract class MobEntityMixin extends LivingEntity {
             MobEntity mob = (MobEntity) (Object) this;
             if (this.getEntityWorld().isClient) {
                 TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
-                if (TamableInteractionCallback.EVENT.invoker().shouldInteract(mob, player, hand) || !data.isEmpty())
+                if (TamableInteractionCallback.EVENT.invoker().shouldInteract(mob, player, hand) || data.notEmpty())
                     cir.setReturnValue(ActionResult.SUCCESS);
                 return;
             }
             EntityTameData entityTameData = EntityTameData.get(mob);
             if (!Objects.equals(entityTameData.getOwner(), player.getUuid())) return;
             entityTameData.convertSit();
+            this.setAiDisabled(entityTameData.getState() == EntityTameData.State.SIT);
             cir.setReturnValue(ActionResult.SUCCESS);
         }
     }
@@ -76,7 +80,7 @@ public abstract class MobEntityMixin extends LivingEntity {
         ItemStack stack = player.getStackInHand(hand);
         MobEntity t = (MobEntity) (Object) this;
         if (this.getEntityWorld().isClient) {
-            if (TamableInteractionCallback.EVENT.invoker().shouldInteract(t, player, hand) || !data.isEmpty() && this.getHealth() < this.getMaxHealth() && data.canInteract(stack))
+            if (TamableInteractionCallback.EVENT.invoker().shouldInteract(t, player, hand) || data.notEmpty() && this.getHealth() < this.getMaxHealth() && data.canInteract(stack))
                 cir.setReturnValue(ActionResult.SUCCESS);
             return;
         }
@@ -97,7 +101,7 @@ public abstract class MobEntityMixin extends LivingEntity {
             }
             if (this.random.nextFloat() < data.chance()) {
                 entityTameData.setOwner(player.getUuid());
-                entityTameData.setSitting(false);
+                entityTameData.setState(EntityTameData.State.FOLLOW);
                 this.getWorld().sendEntityStatus(this, (byte) 7);
             } else this.getWorld().sendEntityStatus(this, (byte) 6);
             cir.setReturnValue(ActionResult.SUCCESS);

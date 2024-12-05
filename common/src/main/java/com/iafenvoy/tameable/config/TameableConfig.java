@@ -82,7 +82,6 @@ public enum TameableConfig implements SynchronousResourceReloader {
             } catch (Exception e) {
                 Tameable.LOGGER.error("Failed to load {} from datapack {}.", entity, resource.getResourcePackName(), e);
             }
-
         }
         //Then, read from config.
         try {
@@ -153,8 +152,8 @@ public enum TameableConfig implements SynchronousResourceReloader {
             return this.breed.stream().filter(x -> x.right().map(y -> match(y.item, stack)).orElse(false)).findFirst().map(x -> x.right().map(y -> y.heal).orElse(1)).orElse(1);
         }
 
-        public boolean isEmpty() {
-            return this == DEFAULT;
+        public boolean notEmpty() {
+            return this != DEFAULT;
         }
     }
 

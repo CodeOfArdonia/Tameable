@@ -12,7 +12,7 @@ public class EntityTameData {
     private final MobEntity mob;
     @Nullable
     private UUID owner = null;
-    private boolean sitting = false;
+    private State state = State.FOLLOW;
     private boolean isDirty;
 
     public EntityTameData(MobEntity mob) {
@@ -45,16 +45,16 @@ public class EntityTameData {
     }
 
     public void convertSit() {
-        this.sitting = !this.sitting;
+        this.state = this.state.next();
         this.markDirty();
     }
 
-    public boolean isSitting() {
-        return this.sitting;
+    public State getState() {
+        return this.state;
     }
 
-    public void setSitting(boolean sitting) {
-        this.sitting = sitting;
+    public void setState(State state) {
+        this.state = state;
         this.markDirty();
     }
 
@@ -65,15 +65,39 @@ public class EntityTameData {
 
     public void writeToNbt(NbtCompound nbt) {
         if (this.owner != null) nbt.putUuid("owner", this.owner);
-        nbt.putBoolean("sitting", this.sitting);
+        nbt.putString("sitting", this.state.name());
     }
 
     public void readFromNbt(NbtCompound nbt) {
         if (nbt.contains("owner")) this.owner = nbt.getUuid("owner");
-        this.sitting = nbt.getBoolean("sitting");
+        this.state = State.valueOf(nbt.getString("sitting"));
     }
 
     public static EntityTameData get(MobEntity mob) {
         return ComponentManager.getEntityData(mob);
+    }
+
+    public enum State {
+        SIT("↓"),
+        FOLLOW("→"),
+        WANDER("×");
+
+        private final String symbol;
+
+        State(String symbol) {
+            this.symbol = symbol;
+        }
+
+        public String getSymbol() {
+            return this.symbol;
+        }
+
+        public State next() {
+            return switch (this) {
+                case SIT -> FOLLOW;
+                case FOLLOW -> WANDER;
+                case WANDER -> SIT;
+            };
+        }
     }
 }

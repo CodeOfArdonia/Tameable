@@ -28,21 +28,21 @@ public enum TamableMobProvider implements IEntityComponentProvider, IServerDataP
     @Override
     public void appendTooltip(ITooltip iTooltip, EntityAccessor entityAccessor, IPluginConfig iPluginConfig) {
         UUID uuid;
-        boolean sitting;
+        EntityTameData.State sitting;
         if (entityAccessor.getServerData().contains(OWNER_KEY)) {
             uuid = entityAccessor.getServerData().getUuid(OWNER_KEY);
-            sitting = entityAccessor.getServerData().getBoolean(SIT_KEY);
+            sitting = EntityTameData.State.valueOf(entityAccessor.getServerData().getString(SIT_KEY));
         } else {
             if (!(entityAccessor.getEntity() instanceof MobEntity mob)) return;
             EntityTameData data = EntityTameData.get(mob);
             if (data.getOwner() != null) {
                 uuid = data.getOwner();
-                sitting = data.isSitting();
+                sitting = data.getState();
             } else return;
         }
         String name = CommonProxy.getLastKnownUsername(uuid);
         if (name == null) name = "???";
-        iTooltip.add(Text.translatable("jade.owner", name).append(Text.literal(sitting ? "↓" : "↑")));
+        iTooltip.add(Text.translatable("jade.owner", name).append(Text.literal(sitting.getSymbol())));
     }
 
     @Override
@@ -51,7 +51,7 @@ public enum TamableMobProvider implements IEntityComponentProvider, IServerDataP
         EntityTameData data = EntityTameData.get(mob);
         if (data.getOwner() != null) {
             nbt.putUuid(OWNER_KEY, data.getOwner());
-            nbt.putBoolean(SIT_KEY, data.isSitting());
+            nbt.putString(SIT_KEY, data.getState().name());
         }
     }
 }

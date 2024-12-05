@@ -71,7 +71,7 @@ public class CustomFollowOwnerGoal extends Goal {
     }
 
     private boolean cannotFollow() {
-        return EntityTameData.get(this.mob).getOwner() == null || EntityTameData.get(this.mob).isSitting() || this.mob.hasVehicle() || this.mob.isLeashed();
+        return EntityTameData.get(this.mob).getOwner() == null || EntityTameData.get(this.mob).getState() != EntityTameData.State.FOLLOW || this.mob.hasVehicle() || this.mob.isLeashed();
     }
 
     @Override
