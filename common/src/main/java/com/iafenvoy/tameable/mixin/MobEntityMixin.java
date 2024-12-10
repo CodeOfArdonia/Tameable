@@ -54,7 +54,6 @@ public abstract class MobEntityMixin extends LivingEntity {
         this.targetSelector.add(2, new CustomTrackOwnerAttackerGoal(mob));
     }
 
-    @SuppressWarnings("all")
     @Inject(method = "interact", at = @At("HEAD"), cancellable = true)
     private void handleSit(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         if (player.getStackInHand(hand).isEmpty()) {

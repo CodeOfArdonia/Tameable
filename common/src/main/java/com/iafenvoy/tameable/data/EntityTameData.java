@@ -4,6 +4,7 @@ import com.iafenvoy.tameable.ComponentManager;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -70,7 +71,8 @@ public class EntityTameData {
 
     public void readFromNbt(NbtCompound nbt) {
         if (nbt.contains("owner")) this.owner = nbt.getUuid("owner");
-        this.state = State.valueOf(nbt.getString("sitting"));
+        if (nbt.contains("sitting", NbtElement.STRING_TYPE))
+            this.state = State.valueOf(nbt.getString("sitting"));
     }
 
     public static EntityTameData get(MobEntity mob) {
