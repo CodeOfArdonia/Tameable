@@ -32,24 +32,24 @@ public class CustomFollowOwnerGoal extends Goal {
     }
 
     private double getSpeed() {
-        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().speed();
+        return TameableConfig.INSTANCE.get(this.mob.getType()).getFollow().speed();
     }
 
     private float getMinDistance() {
-        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().minDistance();
+        return TameableConfig.INSTANCE.get(this.mob.getType()).getFollow().minDistance();
     }
 
     private float getMaxDistance() {
-        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().maxDistance();
+        return TameableConfig.INSTANCE.get(this.mob.getType()).getFollow().maxDistance();
     }
 
     private boolean leavesAllowed() {
-        return TameableConfig.INSTANCE.get(this.mob.getType()).follow().leavesAllowed();
+        return TameableConfig.INSTANCE.get(this.mob.getType()).getFollow().leavesAllowed();
     }
 
     @Override
     public boolean canStart() {
-        if (!TameableConfig.INSTANCE.get(this.mob.getType()).follow().enable()) return false;
+        if (!TameableConfig.INSTANCE.get(this.mob.getType()).getFollow().enable()) return false;
         PlayerEntity player = EntityTameData.get(this.mob).getOwnerPlayer();
         if (player == null) return false;
         else if (player.isSpectator()) return false;

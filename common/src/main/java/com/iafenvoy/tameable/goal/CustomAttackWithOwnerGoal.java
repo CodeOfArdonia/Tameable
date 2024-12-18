@@ -22,7 +22,7 @@ public class CustomAttackWithOwnerGoal extends TrackTargetGoal {
 
     @Override
     public boolean canStart() {
-        if (!TameableConfig.INSTANCE.get(this.mob.getType()).attack()) return false;
+        if (!TameableConfig.INSTANCE.get(this.mob.getType()).getAttack().enable()) return false;
         EntityTameData data = EntityTameData.get(this.mob);
         if (data.getOwner() != null && data.getState() == EntityTameData.State.FOLLOW) {
             PlayerEntity player = data.getOwnerPlayer();

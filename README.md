@@ -74,7 +74,9 @@ Default Values:
   ],
   //The taming chance
   "chance": 1,
+  //Can be an object {"enable":false,"priority":2}
   "attack": false,
+  //Can be an object {"enable":false,"priority":2}
   "protect": false,
   "follow": {
     //These value except "enable" is the default value of a wolf
@@ -82,7 +84,8 @@ Default Values:
     "speed": 1,
     "minDistance": 10,
     "maxDistance": 2,
-    "leavesAllowed": false
+    "leavesAllowed": false,
+    "priority": 2
   }
 }
 ```

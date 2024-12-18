@@ -49,9 +49,10 @@ public abstract class MobEntityMixin extends LivingEntity {
     private void addTameGoals(CallbackInfo ci) {
         if (!this.isAlive()) return;
         MobEntity mob = (MobEntity) (Object) this;
-        this.targetSelector.add(2, new CustomAttackWithOwnerGoal(mob));
-        this.goalSelector.add(2, new CustomFollowOwnerGoal(mob));
-        this.targetSelector.add(2, new CustomTrackOwnerAttackerGoal(mob));
+        TameableConfig.TameableData data = TameableConfig.INSTANCE.get(this.getType());
+        this.targetSelector.add(data.getAttack().priority(), new CustomAttackWithOwnerGoal(mob));
+        this.goalSelector.add(data.getFollow().priority(), new CustomFollowOwnerGoal(mob));
+        this.targetSelector.add(data.getProtect().priority(), new CustomTrackOwnerAttackerGoal(mob));
     }
 
     @Inject(method = "interact", at = @At("HEAD"), cancellable = true)

@@ -49,15 +49,16 @@ public enum TameableConfig implements SynchronousResourceReloader {
                     Codec.INT.optionalFieldOf("heal", 1).forGetter(BreedFoodData::heal)
             ).apply(i3, BreedFoodData::new))).listOf().optionalFieldOf("breed", new ArrayList<>()).forGetter(TameableData::breed),
             Codec.DOUBLE.optionalFieldOf("chance", 1D).forGetter(TameableData::chance),
-            Codec.BOOL.optionalFieldOf("attack", false).forGetter(TameableData::attack),
-            RecordCodecBuilder.<FollowInfo>create(i2 -> i2.group(
+            Codec.either(Codec.BOOL, PriorityInfo.CODEC).optionalFieldOf("attack", Either.left(false)).forGetter(TameableData::attack),
+            Codec.either(Codec.BOOL, RecordCodecBuilder.<FollowInfo>create(i2 -> i2.group(
                     Codec.BOOL.optionalFieldOf("enable", false).forGetter(FollowInfo::enable),
                     Codec.DOUBLE.optionalFieldOf("speed", 1D).forGetter(FollowInfo::speed),
                     Codec.FLOAT.optionalFieldOf("minDistance", 10F).forGetter(FollowInfo::minDistance),
                     Codec.FLOAT.optionalFieldOf("maxDistance", 2F).forGetter(FollowInfo::maxDistance),
-                    Codec.BOOL.optionalFieldOf("leavesAllowed", false).forGetter(FollowInfo::leavesAllowed)
-            ).apply(i2, FollowInfo::new)).optionalFieldOf("follow", FollowInfo.EMPTY).forGetter(TameableData::follow),
-            Codec.BOOL.optionalFieldOf("protect", false).forGetter(TameableData::protect)
+                    Codec.BOOL.optionalFieldOf("leavesAllowed", false).forGetter(FollowInfo::leavesAllowed),
+                    Codec.INT.optionalFieldOf("priority", 2).forGetter(FollowInfo::priority)
+            ).apply(i2, FollowInfo::new))).optionalFieldOf("follow", Either.left(false)).forGetter(TameableData::follow),
+            Codec.either(Codec.BOOL, PriorityInfo.CODEC).optionalFieldOf("attack", Either.left(false)).forGetter(TameableData::protect)
     ).apply(i1, TameableData::new));
     private static final UnboundedMapCodec<EntityType<?>, TameableData> CONFIG_CODEC = Codec.unboundedMap(Registries.ENTITY_TYPE.getCodec(), DATAPACK_CODEC);
     private static final String PATH = "./config/tameable.json";
@@ -128,9 +129,11 @@ public enum TameableConfig implements SynchronousResourceReloader {
     }
 
     public record TameableData(List<Either<Item, TagKey<Item>>> tame,
-                               List<Either<Either<Item, TagKey<Item>>, BreedFoodData>> breed,
-                               double chance, boolean attack, FollowInfo follow, boolean protect) {
-        public static TameableData DEFAULT = new TameableData(new ArrayList<>(), new ArrayList<>(), 0, true, new TameableConfig.FollowInfo(true, 1.0, 10.0F, 2.0F, false), true);
+                               List<Either<Either<Item, TagKey<Item>>, BreedFoodData>> breed, double chance,
+                               Either<Boolean, PriorityInfo> attack,
+                               Either<Boolean, FollowInfo> follow,
+                               Either<Boolean, PriorityInfo> protect) {
+        public static TameableData DEFAULT = new TameableData(new ArrayList<>(), new ArrayList<>(), 0, Either.left(true), Either.left(true), Either.left(true));
 
         public boolean canTame(ItemStack stack) {
             return this.tame.stream().anyMatch(x -> match(x, stack));
@@ -155,13 +158,32 @@ public enum TameableConfig implements SynchronousResourceReloader {
         public boolean notEmpty() {
             return this != DEFAULT;
         }
+
+        public PriorityInfo getAttack() {
+            return this.attack.right().orElse(new PriorityInfo(this.attack.left().orElse(false), 2));
+        }
+
+        public FollowInfo getFollow() {
+            return this.follow.right().orElse(new FollowInfo(this.follow.left().orElse(false), 1, 10, 2, false, 2));
+        }
+
+        public PriorityInfo getProtect() {
+            return this.protect.right().orElse(new PriorityInfo(this.protect.left().orElse(false), 2));
+        }
     }
 
     public record BreedFoodData(Either<Item, TagKey<Item>> item, int heal) {
     }
 
     public record FollowInfo(boolean enable, double speed, float minDistance, float maxDistance,
-                             boolean leavesAllowed) {
-        public static final FollowInfo EMPTY = new FollowInfo(false, 1, 10, 2, false);
+                             boolean leavesAllowed, int priority) {
+        public static final FollowInfo EMPTY = new FollowInfo(false, 1, 10, 2, false, 2);
+    }
+
+    public record PriorityInfo(boolean enable, int priority) {
+        public static final Codec<PriorityInfo> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.BOOL.optionalFieldOf("enable", false).forGetter(PriorityInfo::enable),
+                Codec.INT.optionalFieldOf("priority", 2).forGetter(PriorityInfo::priority)
+        ).apply(i, PriorityInfo::new));
     }
 }
